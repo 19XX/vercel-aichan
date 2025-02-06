@@ -2,66 +2,80 @@ import express from "express";
 import session from "express-session";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import MemoryStore from "memorystore"; // ✅ Ensure this is properly imported
+import MemoryStore from "memorystore"; // Ensure memorystore is installed
 
 dotenv.config();
-const app = express(); // ✅ This must be defined before using app.post
+const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.use(express.json());
 
-// ✅ Ensure session middleware is set up correctly
-app.use(session({
-    store: new (MemoryStore(session))({ checkPeriod: 86400000 }),
-    secret: "ai-chan-secret",
+// Set up session middleware with MemoryStore for session-based chat history
+app.use(
+  session({
+    store: new (MemoryStore(session))({ checkPeriod: 86400000 }), // Clean up expired sessions every 24 hours
+    secret: "ai-chan-secret", // Change this to a secure secret key in production
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
-}));
+    cookie: { secure: false }, // Set secure: true if using HTTPS
+  })
+);
 
-// ✅ Fix: Ensure app is defined before using it
 app.post("/chat", async (req, res) => {
-    const { message } = req.body;
+  const { message } = req.body;
 
-    if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-    }
+  if (!message) {
+    return res.status(400).json({ error: "Message is required" });
+  }
 
-    if (!req.session.chatHistory) {
-        req.session.chatHistory = [
-            { role: "system", content: "You are AIchan, a tsundere AI assistant. Respond concisely with personality." }
-        ];
-    }
+  // Initialize chat history if it doesn't exist
+  if (!req.session.chatHistory) {
+    req.session.chatHistory = [
+      {
+        role: "system",
+        content:
+          "You are AIchan, a tsundere AI assistant. Be concise and reply with personality.",
+      },
+    ];
+  }
 
-    req.session.chatHistory.push({ role: "user", content: message });
+  // Append the new user message to the session history
+  req.session.chatHistory.push({ role: "user", content: message });
 
-    try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-                model: "gpt-4",
-                messages: req.session.chatHistory,
-                max_tokens: 100,
-                temperature: 0.7,
-            }),
-        });
+  try {
+    // Send the full chat history to OpenAI
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: req.session.chatHistory,
+        max_tokens: 150,
+        temperature: 0.8,
+        top_p: 0.9,
+      }),
+    });
 
-        const data = await response.json();
-        console.log("🔹 OpenAI API Response:", JSON.stringify(data, null, 2));
+    const data = await response.json();
+    console.log("🔹 OpenAI API Response:", JSON.stringify(data, null, 2));
 
-        const aiResponse = data.choices?.[0]?.message?.content || "⚠️ AI Error: No response received.";
+    // Extract AI response or set an error message if not received
+    const aiResponse =
+      data.choices?.[0]?.message?.content?.trim() ||
+      "⚠️ AI Error: No response received.";
 
-        req.session.chatHistory.push({ role: "assistant", content: aiResponse });
+    // Append the AI's response to the session history
+    req.session.chatHistory.push({ role: "assistant", content: aiResponse });
 
-        res.status(200).json({ choices: [{ message: { content: aiResponse } }] });
-    } catch (error) {
-        console.error("❌ Error calling OpenAI API:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
+    // Return the AI's response to the client
+    res.status(200).json({ choices: [{ message: { content: aiResponse } }] });
+  } catch (error) {
+    console.error("❌ Error calling OpenAI API:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
-// ✅ Ensure server starts correctly
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
