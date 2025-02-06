@@ -2,24 +2,29 @@ import express from "express";
 import session from "express-session";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import MemoryStore from "memorystore"; // ✅ Correct import
+import MemoryStore from "memorystore"; // ✅ Make sure this is correctly imported
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
-// ✅ Fix session store (prevents memory leaks)
+// ✅ Ensure this line is correct
 app.use(session({
-    store: new (MemoryStore(session))({ checkPeriod: 86400000 }), // ✅ 24-hour session cleanup
+    store: new (MemoryStore(session))({ checkPeriod: 86400000 }),
     secret: "ai-chan-secret",
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false }
 }));
 
+// ✅ Fix: Ensure the POST route exists for "/chat"
 app.post("/chat", async (req, res) => {
     const { message } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+    }
 
     if (!req.session.chatHistory) {
         req.session.chatHistory = [
@@ -43,7 +48,7 @@ app.post("/chat", async (req, res) => {
         });
 
         const data = await response.json();
-        const aiResponse = data.choices[0].message.content;
+        const aiResponse = data.choices?.[0]?.message?.content || "⚠️ AI Response Error";
 
         req.session.chatHistory.push({ role: "assistant", content: aiResponse });
 
@@ -54,4 +59,5 @@ app.post("/chat", async (req, res) => {
     }
 });
 
+// ✅ Ensure your server is running and listening correctly
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
