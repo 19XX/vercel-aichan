@@ -2,18 +2,20 @@ import express from "express";
 import session from "express-session";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import MemoryStore from "memorystore"; // ✅ Correct import
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
-// 🚀 Store chat history per user (session-based)
+// ✅ Fix session store (prevents memory leaks)
 app.use(session({
-    secret: "ai-chan-secret", // Change this to a secure secret key
+    store: new (MemoryStore(session))({ checkPeriod: 86400000 }), // ✅ 24-hour session cleanup
+    secret: "ai-chan-secret",
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // Set to true if using HTTPS
+    cookie: { secure: false }
 }));
 
 app.post("/chat", async (req, res) => {
@@ -36,7 +38,7 @@ app.post("/chat", async (req, res) => {
             },
             body: JSON.stringify({
                 model: "gpt-4",
-                messages: req.session.chatHistory, // 🚀 Send full chat history
+                messages: req.session.chatHistory, // ✅ AI remembers past messages
             }),
         });
 
@@ -52,4 +54,4 @@ app.post("/chat", async (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
