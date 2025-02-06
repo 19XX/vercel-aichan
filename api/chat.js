@@ -1,13 +1,6 @@
 export default async function handler(req, res) {
-    if (req.method === "OPTIONS") {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        return res.status(200).end();
-    }
-
     if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method Not Allowed" });  // 🚨 GET 요청을 차단!
+        return res.status(405).json({ error: "Method Not Allowed" });
     }
 
     const { message } = req.body;
@@ -16,22 +9,17 @@ export default async function handler(req, res) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`, // 🔥 API Key는 환경변수로 숨김
         },
         body: JSON.stringify({
             model: "gpt-4",
             messages: [
-                { role: "system", content: "You are AIchan, a tsundere AI assistant..." },
+                { role: "system", content: "You are AIchan, a futuristic tsundere AI..." },
                 { role: "user", content: message }
             ],
         }),
     });
 
     const data = await response.json();
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
     res.status(200).json(data);
 }
