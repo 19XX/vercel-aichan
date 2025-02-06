@@ -1,15 +1,15 @@
 export default async function handler(req, res) {
-    // CORS 설정 추가
+    // ✅ CORS 설정 추가
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    // OPTIONS 요청 처리 (CORS 해결)
+    // ✅ OPTIONS 요청 처리 (CORS 문제 해결)
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
 
-    // 🚨 `GET` 요청이 오면 405 오류 반환 (허용 안 함)
+    // ✅ POST 요청이 아니면 405 오류 반환
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Method Not Allowed" });
     }
