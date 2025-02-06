@@ -1,26 +1,31 @@
 import express from "express";
+import session from "express-session";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
 
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;  // ✅ Render가 인식하는 포트 사용
-
+const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
-// CORS 설정 추가
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    next();
-});
+// 🚀 Store chat history per user (session-based)
+app.use(session({
+    secret: "ai-chan-secret", // Change this to a secure secret key
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
 
-// OPTIONS 요청 처리 (CORS 문제 해결)
-app.options("/chat", (req, res) => {
-    res.sendStatus(200);
-});
-
-// ✅ POST 요청만 허용
 app.post("/chat", async (req, res) => {
     const { message } = req.body;
+
+    if (!req.session.chatHistory) {
+        req.session.chatHistory = [
+            { role: "system", content: "You are AIchan, a tsundere AI assistant..." }
+        ];
+    }
+
+    req.session.chatHistory.push({ role: "user", content: message });
 
     try {
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -31,22 +36,20 @@ app.post("/chat", async (req, res) => {
             },
             body: JSON.stringify({
                 model: "gpt-4",
-                messages: [
-                    { role: "system", content: "You are AIchan, a tsundere AI assistant..." },
-                    { role: "user", content: message }
-                ],
+                messages: req.session.chatHistory, // 🚀 Send full chat history
             }),
         });
 
         const data = await response.json();
-        res.status(200).json(data);
+        const aiResponse = data.choices[0].message.content;
+
+        req.session.chatHistory.push({ role: "assistant", content: aiResponse });
+
+        res.status(200).json({ choices: [{ message: { content: aiResponse } }] });
     } catch (error) {
         console.error("Error calling OpenAI API:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-// ✅ 서버 시작
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
