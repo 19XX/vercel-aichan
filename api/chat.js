@@ -9,7 +9,7 @@ export default async function handler(req, res) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`, // 🔥 API Key를 환경변수로 숨김
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
             model: "gpt-4",
