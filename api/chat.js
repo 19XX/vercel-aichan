@@ -1,3 +1,24 @@
+import express from "express";
+import session from "express-session";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+import MemoryStore from "memorystore"; // ✅ Ensure this is properly imported
+
+dotenv.config();
+const app = express(); // ✅ This must be defined before using app.post
+const PORT = process.env.PORT || 3000;
+app.use(express.json());
+
+// ✅ Ensure session middleware is set up correctly
+app.use(session({
+    store: new (MemoryStore(session))({ checkPeriod: 86400000 }),
+    secret: "ai-chan-secret",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }
+}));
+
+// ✅ Fix: Ensure app is defined before using it
 app.post("/chat", async (req, res) => {
     const { message } = req.body;
 
@@ -7,7 +28,7 @@ app.post("/chat", async (req, res) => {
 
     if (!req.session.chatHistory) {
         req.session.chatHistory = [
-            { role: "system", content: "You are AIchan, a tsundere AI assistant. Respond concisely and with personality." }
+            { role: "system", content: "You are AIchan, a tsundere AI assistant. Respond concisely with personality." }
         ];
     }
 
@@ -23,13 +44,13 @@ app.post("/chat", async (req, res) => {
             body: JSON.stringify({
                 model: "gpt-4",
                 messages: req.session.chatHistory,
-                max_tokens: 100, // ✅ Prevents empty responses
-                temperature: 0.7, // ✅ Makes responses more dynamic
+                max_tokens: 100,
+                temperature: 0.7,
             }),
         });
 
         const data = await response.json();
-        console.log("🔹 OpenAI API Response:", JSON.stringify(data, null, 2)); // ✅ Debugging
+        console.log("🔹 OpenAI API Response:", JSON.stringify(data, null, 2));
 
         const aiResponse = data.choices?.[0]?.message?.content || "⚠️ AI Error: No response received.";
 
@@ -41,3 +62,6 @@ app.post("/chat", async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+// ✅ Ensure server starts correctly
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
