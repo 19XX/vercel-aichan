@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "engines": {
-    "node": "22.x"  ✅ 최신 Node.js 22.x 버전 사용
+    "node": "22.x" 
   },
   "dependencies": {
     "node-fetch": "^3.3.0"
