@@ -1,16 +1,11 @@
 {
   "name": "vercel-aichan",
   "version": "1.0.0",
-  "main": "index.js",
-  "type": "module", 
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "type": "module",
+  "engines": {
+    "node": "22.x"  ✅ 최신 Node.js 22.x 버전 사용
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.0"
   }
 }
