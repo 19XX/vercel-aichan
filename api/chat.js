@@ -1,19 +1,25 @@
-export default async function handler(req, res) {
-    // ✅ CORS 설정 추가
+import express from "express";
+
+const app = express();
+const PORT = process.env.PORT || 3000;  // ✅ Render가 인식하는 포트 사용
+
+app.use(express.json());
+
+// CORS 설정 추가
+app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    next();
+});
 
-    // ✅ OPTIONS 요청 처리 (CORS 문제 해결)
-    if (req.method === "OPTIONS") {
-        return res.status(200).end();
-    }
+// OPTIONS 요청 처리 (CORS 문제 해결)
+app.options("/chat", (req, res) => {
+    res.sendStatus(200);
+});
 
-    // ✅ POST 요청이 아니면 405 오류 반환
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method Not Allowed" });
-    }
-
+// ✅ POST 요청만 허용
+app.post("/chat", async (req, res) => {
     const { message } = req.body;
 
     try {
@@ -38,4 +44,9 @@ export default async function handler(req, res) {
         console.error("Error calling OpenAI API:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
-}
+});
+
+// ✅ 서버 시작
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
